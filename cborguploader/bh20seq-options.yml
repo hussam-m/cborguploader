@@ -1,0 +1,42 @@
+# Contains suggested human-readable field values and their corresponding IRIs.
+# Keyed on the field names in the types in the schema. Relies on field names
+# being unique or at least using the same options in different containing
+# types.
+
+host_age_unit:
+  Years: http://purl.obolibrary.org/obo/UO_0000036
+  Months: http://purl.obolibrary.org/obo/UO_0000035
+  Weeks: http://purl.obolibrary.org/obo/UO_0000034
+  Days: http://purl.obolibrary.org/obo/UO_0000033
+  Hours: http://purl.obolibrary.org/obo/UO_0000032
+
+host_sex:
+  Male: http://purl.obolibrary.org/obo/PATO_0000384
+  Female: http://purl.obolibrary.org/obo/PATO_0000383
+  Intersex: http://purl.obolibrary.org/obo/PATO_0001340
+
+host_health_status:
+  healthy: http://purl.obolibrary.org/obo/NCIT_C115935
+  asymptomatic: http://purl.obolibrary.org/obo/NCIT_C3833
+  symptomatic: http://purl.obolibrary.org/obo/NCIT_C25269
+  admitted to hospital: http://purl.obolibrary.org/obo/GENEPIO_0002020
+  discharged from hospital: http://purl.obolibrary.org/obo/GENEPIO_0001849
+  dead: http://purl.obolibrary.org/obo/NCIT_C28554
+  alive: http://purl.obolibrary.org/obo/NCIT_C37987
+
+sample_sequencing_technology:
+  Illumina NextSeq 500: http://www.ebi.ac.uk/efo/EFO_0009173
+  Illumina NextSeq 550: http://www.ebi.ac.uk/efo/EFO_0008566
+  Illumina HiSeq X: http://www.ebi.ac.uk/efo/EFO_0008567
+  Illumina MiSeq: http://www.ebi.ac.uk/efo/EFO_0004205
+  Illumina: http://purl.obolibrary.org/obo/OBI_0000759
+  IonTorrent: http://purl.obolibrary.org/obo/NCIT_C125894
+  Oxford Nanopore MinION: http://www.ebi.ac.uk/efo/EFO_0008632
+  Oxford Nanopore Sequencing: http://purl.obolibrary.org/obo/NCIT_C146818
+  Sanger dideoxy sequencing: http://purl.obolibrary.org/obo/NCIT_C19641
+
+specimen_source:
+  nasopharyngeal swab: http://purl.obolibrary.org/obo/NCIT_C155831
+  oropharyngeal swab: http://purl.obolibrary.org/obo/NCIT_C155835
+  sputum: http://purl.obolibrary.org/obo/NCIT_C13278
+  bronchoalveolar lavage fluid: http://purl.obolibrary.org/obo/NCIT_C13195
