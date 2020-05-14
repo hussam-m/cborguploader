@@ -15,8 +15,15 @@ try:
 except ImportError:
     tagger = egg_info_cmd.egg_info
 
-install_requires = ["arvados-python-client", "schema-salad",
-                    "python-magic", "pyshex", "py-dateutil"]
+setup_requires = []
+install_requires = [
+    "pyshex",
+    "arvados-python-client",
+    "python-magic",
+    "py-dateutil",
+    "schema-salad",
+    "rdflib>=4.2.2,<4.3.0"
+]
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
 pytest_runner = ["pytest < 6", "pytest-runner < 5"] if needs_pytest else []
@@ -38,8 +45,8 @@ setup(
                                       "SARS-CoV-2-reference.fasta",],
     },
     install_requires=install_requires,
-    extras_require={}
-    setup_requires=[] + pytest_runner,
+    extras_require={},
+    setup_requires=setup_requires + pytest_runner,
     tests_require=["pytest<5"],
     entry_points={
         "console_scripts": [

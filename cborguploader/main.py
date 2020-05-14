@@ -12,8 +12,8 @@ import sys
 import os
 import json
 sys.path.insert(0,'.')
-from bh20sequploader.qc_metadata import qc_metadata
-from bh20sequploader.qc_fasta import qc_fasta
+from cborguploader.qc_metadata import qc_metadata
+from cborguploader.qc_fasta import qc_fasta
 
 ARVADOS_API_HOST=os.environ.get('ARVADOS_API_HOST', 'cborg.cbrc.kaust.edu.sa')
 ARVADOS_API_TOKEN=os.environ.get('ARVADOS_API_TOKEN', '')
@@ -71,7 +71,7 @@ def main():
 
     properties = {
         "sequence_label": seqlabel,
-        "upload_app": "bh20-seq-uploader",
+        "upload_app": "cborguploader",
         "upload_ip": external_ip,
         "upload_user": "%s@%s" % (username, socket.gethostname())
     }
