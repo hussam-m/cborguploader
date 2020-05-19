@@ -22,7 +22,8 @@ install_requires = [
     "python-magic",
     "py-dateutil",
     "schema-salad",
-    "rdflib>=4.2.2,<4.3.0"
+    "rdflib>=4.2.2,<4.3.0",
+    "pyyaml"
 ]
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
