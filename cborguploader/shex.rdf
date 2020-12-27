@@ -1,6 +1,6 @@
-PREFIX : <https://raw.githubusercontent.com/bio-ontology-research-group/bh20-seq-resource/master/bh20sequploader/bh20seq-shex.rdf#>
-PREFIX MainSchema: <http://biohackathon.org/bh20-seq-schema#MainSchema/>
-PREFIX hostSchema: <http://biohackathon.org/bh20-seq-schema#hostSchema/>
+PREFIX : <https://raw.githubusercontent.com/bio-ontology-research-group/cborguploader/master/cborguploader/shex.rdf#>
+PREFIX MainSchema: <http://cborg.cbrc.kaust.edu.sa/schema#MainSchema/>
+PREFIX hostSchema: <http://cborg.cbrc.kaust.edu.sa/schema#hostSchema/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX sio: <http://semanticscience.org/resource/>

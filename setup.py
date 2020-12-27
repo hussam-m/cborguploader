@@ -23,7 +23,9 @@ install_requires = [
     "py-dateutil",
     "schema-salad",
     "rdflib>=4.2.2,<4.3.0",
-    "pyyaml"
+    "pyyaml",
+    "biopython",
+    "click"
 ]
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)

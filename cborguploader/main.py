@@ -1,115 +1,143 @@
-import argparse
-import time
+#!/usr/bin/env python
+import click as ck
 import arvados
-import arvados.collection
-import json
-import magic
-from pathlib import Path
-import urllib.request
-import socket
-import getpass
-import sys
 import os
+import gzip
+from Bio import SeqIO
+import urllib
+import getpass
 import json
 import yaml
-sys.path.insert(0,'.')
-from cborguploader.qc_metadata import qc_metadata
-from cborguploader.qc_fasta import qc_fasta
-from cborguploader.qc_fastq import qc_fastq
+import socket
+import pkg_resources
+import schema_salad.schema
+import schema_salad.ref_resolver
+import schema_salad.jsonld_context
+import traceback
+from rdflib import Graph, Namespace
+from pyshex.evaluate import evaluate
+import logging
 
-ARVADOS_API_HOST=os.environ.get('ARVADOS_API_HOST', 'cborg.cbrc.kaust.edu.sa')
-ARVADOS_API_TOKEN=os.environ.get('ARVADOS_API_TOKEN', '')
-UPLOAD_PROJECT='cborg-j7d0g-zcdm4l3ts28ioqo'
 
-def main():
-    parser = argparse.ArgumentParser(description='Upload SARS-CoV-19 sequences for analysis')
-    parser.add_argument('--fasta', type=argparse.FileType('r'), default=None, help='sequence FASTA')
-    parser.add_argument('--fastq1', type=argparse.FileType('r'), default=None, help='sequence FASTQ')
-    parser.add_argument('--fastq2', type=argparse.FileType('r'), default=None, help='sequence FASTQ second read for paired-end reads')
-    parser.add_argument('--metadata', type=argparse.FileType('r'), help='sequence metadata json')
-    parser.add_argument("--validate", action="store_true", help="Dry run, validate only")
-    args = parser.parse_args()
+ARVADOS_API_HOST = os.environ.get('ARVADOS_API_HOST', 'cborg.cbrc.kaust.edu.sa')
+ARVADOS_API_TOKEN = os.environ.get('ARVADOS_API_TOKEN', '')
 
-    print(ARVADOS_API_HOST, ARVADOS_API_TOKEN)
-    api = arvados.api(host=ARVADOS_API_HOST, token=ARVADOS_API_TOKEN, insecure=True)
+def upload_file(col, filename_local, filename_remote):
+    lf = open(filename_local, 'rb')
+    with col.open(filename_remote, "wb") as f:
+        r = lf.read(65536)
+        while r:
+            f.write(r)
+            r = lf.read(65536)
+    lf.close()
 
-    if args.fasta:
-        try:
-            target = qc_fasta(args.fasta)
-        except ValueError as e:
-            print(e)
-            exit(1)
-    elif args.fastq1:
-        try:
-            target = qc_fastq(args.fastq1)
-            if args.fastq2:
-                qc_fastq(args.fastq2)
-                target = ['reads1.fastq', 'reads2.fastq']
-        except ValueError as e:
-            print(e)
-            exit(1)
-    else:
-        print('Please provide a sequence in FASTA or FASTQ formats')
-        exit(1)
+def validate_fastq(fastq_file):
+    with open(fastq_file, 'r') as f:
+        for record in SeqIO.parse(f, 'fastq'):
+            pass
+    return True
 
-    if not qc_metadata(args.metadata.name):
-        print("Failed metadata qc")
-        exit(1)
+def validate_fasta(fasta_file):
+    with open(fasta_file, 'r') as f:
+        for record in SeqIO.parse(f, 'fasta'):
+            pass
+    return True
 
-    if args.validate:
-        print("Valid")
-        exit(0)
 
+def validate_metadata(metadata_file):
+    schema_resource = pkg_resources.resource_stream(__name__, "schema.yml")
+    cache = {
+        "https://raw.githubusercontent.com/bio-ontology-research-group/cborguploader/master/cborguploader/schema.yml": schema_resource.read().decode("utf-8")}
+    (document_loader,
+     avsc_names,
+     schema_metadata,
+     metaschema_loader) = schema_salad.schema.load_schema(
+         "https://raw.githubusercontent.com/bio-ontology-research-group/cborguploader/master/cborguploader/schema.yml",
+         cache=cache)
+
+    shex = pkg_resources.resource_stream(
+        __name__, "shex.rdf").read().decode("utf-8")
+
+    if not isinstance(avsc_names, schema_salad.avro.schema.Names):
+        print(avsc_names)
+        return False
+
+    try:
+        doc, metadata = schema_salad.schema.load_and_validate(
+            document_loader, avsc_names, metadata_file, True)
+        g = schema_salad.jsonld_context.makerdf("workflow", doc, document_loader.ctx)
+        rslt, reason = evaluate(
+            g, shex, doc["id"],
+            "https://raw.githubusercontent.com/bio-ontology-research-group/cborguploader/master/cborguploader/shex.rdf#submissionShape")
+
+        if not rslt:
+            print(reason)
+
+        return rslt
+    except Exception as e:
+        traceback.print_exc()
+        logging.warn(e)
+    return False
+
+@ck.command()
+@ck.option(
+    '--uploader-project', '-up', required=True,
+    help='COVID19 FASTA/FASTQ sequences project uuid')
+@ck.option('--sequence-fasta', '-sf', help='FASTA File (*.fasta). FASTQ files are ignored if FASTA file is provided')
+@ck.option('--sequence-read1', '-sr1', help='FASTQ File (*.fastq) read 1')
+@ck.option('--sequence-read2', '-sr2', help='FASTQ File (*.fastq) read 2')
+@ck.option('--metadata-file', '-m', required=True, help='METADATA File')
+def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2, metadata_file):
+    if not validate_metadata(metadata_file):
+        return
+    metadata = yaml.load(open(metadata_file), Loader=yaml.FullLoader)
+    api = arvados.api('v1', host=ARVADOS_API_HOST, token=ARVADOS_API_TOKEN)
     col = arvados.collection.Collection(api_client=api)
 
-    print("Reading metadata")
-    with col.open("metadata.yaml", "w") as f:
-        metadata = args.metadata.read()
-        f.write(metadata)
-    args.metadata.close()
-    metadata = yaml.load(metadata, Loader=yaml.FullLoader)
-    seqlabel = metadata['sample']['sample_id']
-    if args.fasta:
-        with col.open('sequence.fasta', 'w') as f:
-            r = args.fasta.read(65536)
-            while r:
-                f.write(r)
-                r = args.fasta.read(65536)
-        args.fasta.close()
-    elif args.fastq1:
-        with col.open('reads1.fastq', 'w') as f:
-            r = args.fastq1.read(65536)
-            seqlabel = r[1:r.index("\n")]
-            while r:
-                f.write(r)
-                r = args.fastq1.read(65536)
-        args.fastq1.close()
-        if args.fastq2:
-            with col.open('reads2.fastq', 'w') as f:
-                r = args.fastq2.read(65536)
-                while r:
-                    f.write(r)
-                    r = args.fastq2.read(65536)
-            args.fastq2.close()
-        
+    if sequence_fasta is not None:
+        validate_fasta(sequence_fasta)
+        upload_file(col, sequence_fasta, 'sequence.fasta')
+    elif sequence_read1 is not None:
+        validate_fastq(sequence_read1)
+        upload_file(col, sequence_read1, 'reads1.fastq')
+        if sequence_read2 is not None:
+            validate_fastq(sequence_read2)
+            upload_file(col, sequence_read2, 'reads2.fastq')
+    else:
+        raise ck.UsageError('Please provide at least a FASTA file or FASTQ reads')
+
+    upload_file(col, metadata_file, 'metadata.yaml')
     external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
     try:
         username = getpass.getuser()
     except KeyError:
         username = "unknown"
-
+    
     properties = {
-        "sequence_label": seqlabel,
+        "sequence_label": metadata['sample']['sample_id'],
         "upload_app": "cborguploader",
         "upload_ip": external_ip,
         "upload_user": "%s@%s" % (username, socket.gethostname())
     }
 
-    result = col.save_new(owner_uuid=UPLOAD_PROJECT, name="%s uploaded by %s from %s" %
-                 (seqlabel, properties['upload_user'], properties['upload_ip']),
+    col.save_new(owner_uuid=uploader_project, name="%s uploaded by %s from %s" %
+                 (metadata['sample']['sample_id'], properties['upload_user'], properties['upload_ip']),
                  properties=properties, ensure_unique_name=True)
+
     print(json.dumps(col.api_response()))
+
+    # res_uri = ARVADOS_COL_BASE_URI + response['uuid']
+    # graph = to_rdf(res_uri, args.metadata.name)
+
+    # with col.open('metadata.rdf', "wb") as f:
+    #     f.write(graph.serialize(format="pretty-xml"))
+    # col.save()
+
+    # url = BORG_COVID_API + "metadata/" +  response['uuid']
+    # print(requests.post(url))
+    # print(json.dumps(response))
+
 
 if __name__ == "__main__":
     main()

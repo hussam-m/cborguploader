@@ -1,4 +1,4 @@
-$base: http://biohackathon.org/bh20-seq-schema
+$base: http://cborg.cbrc.kaust.edu.sa/schema
 $namespaces:
   sch: https://schema.org/
   efo: http://www.ebi.ac.uk/efo/
