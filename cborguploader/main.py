@@ -89,7 +89,9 @@ def validate_metadata(metadata_file):
 @ck.option('--sequence-read1', '-sr1', help='FASTQ File (*.fastq) read 1')
 @ck.option('--sequence-read2', '-sr2', help='FASTQ File (*.fastq) read 2')
 @ck.option('--metadata-file', '-m', required=True, help='METADATA File')
-def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2, metadata_file):
+@ck.option('--no-sync', '-ns', is_flag=True)
+def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2,
+         metadata_file, no_sync):
     if not validate_metadata(metadata_file):
         return
     metadata = yaml.load(open(metadata_file), Loader=yaml.FullLoader)
@@ -130,17 +132,18 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2, metad
                  (metadata['sample']['sample_id'], properties['upload_user'], properties['upload_ip']),
                  properties=properties, ensure_unique_name=True)
     response = col.api_response()
-    col_uuid = response['uuid']
-    data = {
-        'token': ARVADOS_API_TOKEN,
-        'col_uuid': col_uuid,
-        'is_fasta': is_fasta,
-        'is_paired': is_paired,
-        'status': 'uploaded'
-    }
-    # Synchronize the upload on the web
-    r = requests.post(UPLOADER_URL + '/api/uploader/sync', data=data)
     print(json.dumps(response))
+    if not no_sync:
+        col_uuid = response['uuid']
+        data = {
+            'token': ARVADOS_API_TOKEN,
+            'col_uuid': col_uuid,
+            'is_fasta': is_fasta,
+            'is_paired': is_paired,
+            'status': 'uploaded'
+        }
+        # Synchronize the upload on the web
+        r = requests.post(UPLOADER_URL + '/api/uploader/sync', data=data)
     
 
     # res_uri = ARVADOS_COL_BASE_URI + response['uuid']
