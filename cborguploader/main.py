@@ -17,10 +17,12 @@ import traceback
 from rdflib import Graph, Namespace
 from pyshex.evaluate import evaluate
 import logging
+import requests
 
 
 ARVADOS_API_HOST = os.environ.get('ARVADOS_API_HOST', 'cborg.cbrc.kaust.edu.sa')
 ARVADOS_API_TOKEN = os.environ.get('ARVADOS_API_TOKEN', '')
+UPLOADER_URL = os.environ.get('UPLOADER_URL', 'https://upload.cborg.cbrc.kaust.edu.sa')
 
 def upload_file(col, filename_local, filename_remote):
     lf = open(filename_local, 'rb')
@@ -93,16 +95,19 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2, metad
     metadata = yaml.load(open(metadata_file), Loader=yaml.FullLoader)
     api = arvados.api('v1', host=ARVADOS_API_HOST, token=ARVADOS_API_TOKEN)
     col = arvados.collection.Collection(api_client=api)
-
+    is_fasta = False
+    is_paired = False
     if sequence_fasta is not None:
         validate_fasta(sequence_fasta)
         upload_file(col, sequence_fasta, 'sequence.fasta')
+        is_fasta = True
     elif sequence_read1 is not None:
         validate_fastq(sequence_read1)
         upload_file(col, sequence_read1, 'reads1.fastq')
         if sequence_read2 is not None:
             validate_fastq(sequence_read2)
             upload_file(col, sequence_read2, 'reads2.fastq')
+            is_paired = True
     else:
         raise ck.UsageError('Please provide at least a FASTA file or FASTQ reads')
 
@@ -124,8 +129,19 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2, metad
     col.save_new(owner_uuid=uploader_project, name="%s uploaded by %s from %s" %
                  (metadata['sample']['sample_id'], properties['upload_user'], properties['upload_ip']),
                  properties=properties, ensure_unique_name=True)
-
-    print(json.dumps(col.api_response()))
+    response = col.api_response()
+    col_uuid = response['uuid']
+    data = {
+        'token': ARVADOS_API_TOKEN,
+        'col_uuid': col_uuid,
+        'is_fasta': is_fasta,
+        'is_paired': is_paired,
+        'status': 'uploaded'
+    }
+    # Synchronize the upload on the web
+    r = requests.post(UPLOADER_URL + '/api/uploader/sync', data=data)
+    print(json.dumps(response))
+    
 
     # res_uri = ARVADOS_COL_BASE_URI + response['uuid']
     # graph = to_rdf(res_uri, args.metadata.name)
