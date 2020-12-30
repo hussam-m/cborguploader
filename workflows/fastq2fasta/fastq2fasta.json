@@ -1,0 +1,15 @@
+{
+    "ref_fasta": {
+        "class": "File",
+        "path": "/opt/data/NC_045512.2.fasta"
+    },
+    "sample_id": "KPCOVID",
+    "fastq_forward":{
+        "class": "File",
+        "path": "/opt/data/KPCOVID-101_S1_L001_R1_001.fastq"
+    },
+    "fastq_reverse": {
+        "class": "File",
+        "path": "/opt/data/KPCOVID-101_S1_L001_R2_001.fastq"
+    }
+}
