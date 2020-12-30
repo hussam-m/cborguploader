@@ -116,20 +116,16 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2,
     upload_file(col, metadata_file, 'metadata.yaml')
     external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
-    try:
-        username = getpass.getuser()
-    except KeyError:
-        username = "unknown"
-    
     properties = {
         "sequence_label": metadata['sample']['sample_id'],
         "upload_app": "cborguploader",
         "upload_ip": external_ip,
-        "upload_user": "%s@%s" % (username, socket.gethostname())
+        "is_fasta": is_fasta,
+        "is_paired": is_paired
     }
 
-    col.save_new(owner_uuid=uploader_project, name="%s uploaded by %s from %s" %
-                 (metadata['sample']['sample_id'], properties['upload_user'], properties['upload_ip']),
+    col.save_new(owner_uuid=uploader_project, name="%s uploaded from %s" %
+                 (metadata['sample']['sample_id'], properties['upload_ip']),
                  properties=properties, ensure_unique_name=True)
     response = col.api_response()
     print(json.dumps(response))
