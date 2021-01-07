@@ -17,7 +17,7 @@ except ImportError:
 
 setup_requires = []
 install_requires = [
-    "pyshex",
+    "pyshex==0.7.14",
     "arvados-python-client",
     "python-magic",
     "py-dateutil",
