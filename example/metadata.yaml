@@ -1,0 +1,20 @@
+id: placeholder
+
+host:
+    host_id: XX1
+    host_species: http://purl.obolibrary.org/obo/NCBITaxon_9606
+
+sample:
+    sample_id: TEST
+    collection_date: "2020-01-01"
+    collection_location: http://www.wikidata.org/entity/Q851
+    specimen_source: [http://purl.obolibrary.org/obo/NCIT_C155831]
+
+virus:
+    virus_species: http://purl.obolibrary.org/obo/NCBITaxon_2697049
+
+technology:
+    sample_sequencing_technology: [http://www.ebi.ac.uk/efo/EFO_0009173]
+
+submitter:
+    authors: [Author]
