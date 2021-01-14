@@ -96,7 +96,7 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2,
         return
     metadata = yaml.load(open(metadata_file), Loader=yaml.FullLoader)
     api = arvados.api('v1', host=ARVADOS_API_HOST, token=ARVADOS_API_TOKEN)
-    col = arvados.collection.Collection(api_client=api)
+    col = arvados.collection.Collection(api_client=api, num_retries=5)
     is_fasta = False
     is_paired = False
     if sequence_fasta is not None:
@@ -114,19 +114,17 @@ def main(uploader_project, sequence_fasta, sequence_read1, sequence_read2,
         raise ck.UsageError('Please provide at least a FASTA file or FASTQ reads')
 
     upload_file(col, metadata_file, 'metadata.yaml')
-    external_ip = urllib.request.urlopen('https://ident.me').read().decode('utf8')
-
+    
     properties = {
         "sequence_label": metadata['sample']['sample_id'],
         "upload_app": "cborguploader",
-        "upload_ip": external_ip,
         "is_fasta": is_fasta,
         "is_paired": is_paired
     }
 
-    col.save_new(owner_uuid=uploader_project, name="%s uploaded from %s" %
-                 (metadata['sample']['sample_id'], properties['upload_ip']),
-                 properties=properties, ensure_unique_name=True)
+    col.save_new(
+        owner_uuid=uploader_project, name=metadata['sample']['sample_id'],
+        properties=properties, ensure_unique_name=True)
     response = col.api_response()
     print(json.dumps(response))
     if not no_sync:
